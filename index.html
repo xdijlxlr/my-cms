@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OMO ADMIN - 商品管理系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f9fafb; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 50; }
+        .modal.active { display: flex; }
+        .sidebar-item:hover { background-color: #2d2d2d; }
+    </style>
+</head>
+<body class="flex min-h-screen">
+
+    <aside class="w-64 bg-black text-white flex-shrink-0">
+        <div class="p-6">
+            <h1 class="text-xl font-bold tracking-widest">OMO ADMIN</h1>
+            <p class="text-xs text-gray-400 mt-1">- MAARU日本萌物</p>
+        </div>
+        <nav class="mt-4">
+            <a href="#" class="sidebar-item flex items-center px-6 py-3 text-gray-300"><i class="fas fa-chart-line mr-3"></i>總覽報表</a>
+            <a href="#" class="sidebar-item flex items-center px-6 py-3 text-gray-300"><i class="fas fa-list-ul mr-3"></i>訂單管理</a>
+            <a href="#" class="sidebar-item flex items-center px-6 py-3 bg-gray-800 text-white border-l-4 border-pink-400"><i class="fas fa-box mr-3"></i>商品管理</a>
+            <a href="#" class="sidebar-item flex items-center px-6 py-3 text-gray-300"><i class="fas fa-th-large mr-3"></i>首頁排版</a>
+            <a href="#" class="sidebar-item flex items-center px-6 py-3 text-gray-300"><i class="fas fa-calculator mr-3"></i>採買統計</a>
+            <a href="#" class="sidebar-item flex items-center px-6 py-3 text-gray-300"><i class="fas fa-cog mr-3"></i>網站設定</a>
+        </nav>
+        <div class="absolute bottom-0 w-64 p-6">
+            <a href="#" class="text-gray-400 text-sm hover:text-white">登出</a>
+        </div>
+    </aside>
+
+    <main class="flex-1 p-8">
+        <header class="flex justify-between items-center mb-8">
+            <h2 class="text-2xl font-bold text-gray-800">商品管理</h2>
+            <a href="#" class="text-gray-500 hover:underline text-sm">前往官網 ↗</a>
+        </header>
+
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-center">
+            <button onclick="toggleModal(true)" class="bg-pink-400 text-white px-6 py-2 rounded-lg hover:bg-pink-500 transition shadow-md">
+                + 新增商品
+            </button>
+            <button class="border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50">匯出 CSV</button>
+            <div class="flex-1 relative">
+                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                <input type="text" placeholder="搜尋商品名稱、分類、品牌..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-200">
+            </div>
+            <button class="bg-gray-800 text-white px-6 py-2 rounded-lg">搜尋</button>
+        </div>
+
+        <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-gray-50 text-gray-500 text-sm uppercase">
+                    <tr>
+                        <th class="px-6 py-4 font-medium">編號</th>
+                        <th class="px-6 py-4 font-medium">圖片</th>
+                        <th class="px-6 py-4 font-medium">名稱</th>
+                        <th class="px-6 py-4 font-medium">售價</th>
+                        <th class="px-6 py-4 font-medium">利潤</th>
+                        <th class="px-6 py-4 font-medium">庫存</th>
+                        <th class="px-6 py-4 font-medium">狀態</th>
+                        <th class="px-6 py-4 font-medium text-center">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="productTable" class="divide-y divide-gray-100 text-gray-700">
+                    </tbody>
+            </table>
+        </div>
+    </main>
+
+    <div id="productModal" class="modal items-center justify-center">
+        <div class="bg-white rounded-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div class="flex justify-between items-center p-6 border-b sticky top-0 bg-white z-10">
+                <h3 class="text-xl font-bold">編輯/新增商品</h3>
+                <button onclick="toggleModal(false)" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            
+            <form id="productForm" class="p-8 space-y-8">
+                <section>
+                    <div class="border-2 border-dashed border-pink-200 bg-pink-50 rounded-xl p-8 text-center cursor-pointer hover:bg-pink-100 transition" id="dropzone">
+                        <i class="fas fa-camera text-3xl text-gray-400 mb-2"></i>
+                        <p class="text-gray-600 font-medium">點擊選擇圖片 或 拖放至此處</p>
+                        <p class="text-xs text-gray-400 mt-1">支援 JPG, PNG, WEBP (最大 5MB)</p>
+                        <input type="file" id="fileInput" class="hidden" accept="image/*">
+                        <img id="preview" class="hidden mx-auto mt-4 h-32 rounded-lg shadow-sm">
+                    </div>
+                </section>
+
+                <section class="grid grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">商品名稱 *</label>
+                        <input type="text" id="pName" required class="w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-pink-200 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">品牌名稱 (圖片分類)</label>
+                        <input type="text" id="pBrand" placeholder="選擇或輸入品牌" class="w-full border rounded-lg p-2.5 outline-none">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">分類</label>
+                        <input type="text" id="pCat" class="w-full border rounded-lg p-2.5 outline-none">
+                    </div>
+                </section>
+
+                <section class="grid grid-cols-4 gap-4 bg-gray-50 p-4 rounded-xl">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">台幣售價 *</label>
+                        <input type="number" id="pPrice" class="w-full border rounded-lg p-2 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">韓幣原價</label>
+                        <div class="relative">
+                            <span class="absolute left-2 top-2 text-gray-400">₩</span>
+                            <input type="number" id="pKrw" oninput="calcCost()" class="w-full border rounded-lg p-2 pl-6 outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">匯率 (÷)</label>
+                        <input type="number" id="pRate" value="40" oninput="calcCost()" class="w-full border rounded-lg p-2 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">成本 (台幣)</label>
+                        <input type="text" id="pCost" readonly class="w-full bg-gray-100 border rounded-lg p-2 outline-none text-gray-500" placeholder="自動計算">
+                    </div>
+                </section>
+
+                <section class="space-y-4">
+                    <h4 class="font-bold border-l-4 border-pink-400 pl-2">規格設定</h4>
+                    <div class="flex gap-4 items-end">
+                        <div class="w-1/3">
+                            <label class="text-xs text-gray-500">類別 (如：尺寸)</label>
+                            <input type="text" class="w-full border rounded-lg p-2 outline-none">
+                        </div>
+                        <div class="flex-1">
+                            <label class="text-xs text-gray-500">選項用逗號分開 (如：S,M,L)</label>
+                            <input type="text" class="w-full border rounded-lg p-2 outline-none">
+                        </div>
+                        <button type="button" class="bg-red-500 text-white p-2.5 rounded-lg hover:bg-red-600"><i class="fas fa-times"></i></button>
+                    </div>
+                    <button type="button" class="text-gray-500 text-sm hover:text-pink-500 font-medium">+ 新增規格類別 (例如：顏色、尺寸)</button>
+                </section>
+
+                <section class="grid grid-cols-2 gap-6 border-t pt-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">庫存</label>
+                        <input type="number" id="pStock" value="1" class="w-full border rounded-lg p-2.5 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">狀態</label>
+                        <select id="pStatus" class="w-full border rounded-lg p-2.5 outline-none bg-white">
+                            <option value="上架">上架</option>
+                            <option value="下架">下架</option>
+                        </select>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">描述</label>
+                        <textarea id="pDesc" rows="3" class="w-full border rounded-lg p-2.5 outline-none resize-none"></textarea>
+                    </div>
+                </section>
+
+                <div class="flex justify-end gap-3 sticky bottom-0 bg-white py-4 border-t">
+                    <button type="button" onclick="toggleModal(false)" class="px-8 py-2 border rounded-lg hover:bg-gray-50">取消</button>
+                    <button type="submit" class="px-8 py-2 bg-black text-white rounded-lg hover:bg-gray-800 shadow-lg">儲存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 假資料初始狀態
+        let products = [
+            { id: 'P1769865061826276', name: '手機吊鏈', price: 499, profit: 499, krw: 2000, cost: 0, stock: 1, status: '上架中', img: 'https://via.placeholder.com/40' }
+        ];
+
+        // 1. 切換 Modal 顯示
+        function toggleModal(show) {
+            const modal = document.getElementById('productModal');
+            show ? modal.classList.add('active') : modal.classList.remove('active');
+            if(!show) document.getElementById('productForm').reset();
+        }
+
+        // 2. 自動計算成本
+        function calcCost() {
+            const krw = document.getElementById('pKrw').value;
+            const rate = document.getElementById('pRate').value;
+            const costField = document.getElementById('pCost');
+            if(krw && rate) {
+                costField.value = Math.round(krw / rate);
+            }
+        }
+
+        // 3. 渲染表格
+        function renderTable() {
+            const tbody = document.getElementById('productTable');
+            tbody.innerHTML = products.map((p, index) => `
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="px-6 py-4 text-xs text-blue-500 font-mono">${p.id}</td>
+                    <td class="px-6 py-4"><img src="${p.img}" class="w-10 h-10 object-cover rounded shadow-sm"></td>
+                    <td class="px-6 py-4 font-medium text-blue-600 underline cursor-pointer">${p.name}</td>
+                    <td class="px-6 py-4 font-bold">${p.price}</td>
+                    <td class="px-6 py-4 text-green-600 font-bold">${p.profit}</td>
+                    <td class="px-6 py-4">${p.stock}</td>
+                    <td class="px-6 py-4">
+                        <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">● ${p.status}</span>
+                    </td>
+                    <td class="px-6 py-4 text-center space-x-2">
+                        <button class="text-gray-400 hover:text-gray-600 underline text-sm">編輯</button>
+                        <button onclick="deleteProduct(${index})" class="bg-red-500 text-white px-3 py-1 rounded text-xs">刪除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 4. 新增商品處理
+        document.getElementById('productForm').onsubmit = function(e) {
+            e.preventDefault();
+            const newProduct = {
+                id: 'P' + Date.now(),
+                name: document.getElementById('pName').value,
+                price: document.getElementById('pPrice').value,
+                profit: document.getElementById('pPrice').value - (document.getElementById('pCost').value || 0),
+                krw: document.getElementById('pKrw').value || 0,
+                cost: document.getElementById('pCost').value || 0,
+                stock: document.getElementById('pStock').value,
+                status: document.getElementById('pStatus').value + '中',
+                img: document.getElementById('preview').src || 'https://via.placeholder.com/40'
+            };
+            products.unshift(newProduct);
+            renderTable();
+            toggleModal(false);
+        };
+
+        // 5. 刪除功能
+        function deleteProduct(index) {
+            if(confirm('確定要刪除嗎？')) {
+                products.splice(index, 1);
+                renderTable();
+            }
+        }
+
+        // 6. 圖片預覽處理
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+
+        dropzone.onclick = () => fileInput.click();
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (re) => {
+                    preview.src = re.target.result;
+                    preview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        // 初始化
+        renderTable();
+    </script>
+</body>
+</html>
