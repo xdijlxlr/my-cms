@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OMO ADMIN - 雲端圖片版</title>
+    <title>OMO ADMIN - 全欄位雲端版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -12,7 +12,6 @@
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; items-center; justify-content: center; }
         .modal.active { display: flex; }
         .loading-spinner { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.8); z-index: 100; items-center; justify-content: center; }
-        .img-preview { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #eee; }
     </style>
 </head>
 <body class="flex min-h-screen">
@@ -22,137 +21,187 @@
         <span id="loadText">處理中...</span>
     </div>
 
-    <main class="flex-1 p-8">
+    <aside class="w-64 bg-black text-white flex-shrink-0 hidden md:block">
+        <div class="p-6">
+            <h1 class="text-xl font-bold tracking-widest text-white">OMO ADMIN</h1>
+        </div>
+        <nav class="mt-4">
+            <a href="#" class="flex items-center px-6 py-3 bg-gray-800 text-white border-l-4 border-pink-400 font-bold">
+                <i class="fas fa-box mr-3 w-5 text-pink-400"></i>商品管理
+            </a>
+        </nav>
+    </aside>
+
+    <main class="flex-1 p-8 overflow-y-auto">
         <header class="flex justify-between items-center mb-8">
-            <h2 class="text-2xl font-bold text-gray-800">商品管理 <span class="text-sm font-normal text-gray-400">(Cloudinary + Baserow)</span></h2>
-            <button onclick="toggleModal(true)" class="bg-pink-400 text-white px-6 py-2 rounded-lg font-bold shadow-md hover:bg-pink-500 transition">+ 新增商品</button>
+            <h2 class="text-2xl font-bold text-gray-800">商品管理</h2>
+            <button onclick="toggleModal(true)" class="bg-pink-400 text-white px-6 py-2.5 rounded-lg hover:bg-pink-500 transition shadow-sm font-medium">+ 新增商品</button>
         </header>
 
-        <div class="bg-white rounded-xl shadow-sm overflow-hidden border">
+        <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
             <table class="w-full text-left">
                 <thead class="bg-gray-50 text-gray-500 text-xs font-bold uppercase">
                     <tr>
                         <th class="px-6 py-4">圖片</th>
-                        <th class="px-6 py-4">名稱</th>
+                        <th class="px-6 py-4">名稱/品牌</th>
+                        <th class="px-6 py-4 text-center text-pink-500">日幣原價</th>
                         <th class="px-6 py-4 text-center">台幣售價</th>
                         <th class="px-6 py-4 text-center">庫存</th>
+                        <th class="px-6 py-4 text-center">狀態</th>
                         <th class="px-6 py-4 text-center">操作</th>
                     </tr>
                 </thead>
-                <tbody id="productTable" class="divide-y text-sm"></tbody>
+                <tbody id="productTable" class="divide-y text-sm text-gray-700"></tbody>
             </table>
         </div>
     </main>
 
     <div id="productModal" class="modal p-4">
-        <div class="bg-white rounded-2xl w-full max-w-2xl overflow-hidden flex flex-col shadow-2xl">
-            <div class="p-6 border-b flex justify-between items-center">
-                <h3 class="text-xl font-bold">新增/編輯商品</h3>
-                <button onclick="toggleModal(false)" class="text-2xl">&times;</button>
+        <div class="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+            <div class="px-8 py-5 border-b flex justify-between items-center">
+                <h3 class="text-xl font-bold">編輯商品資訊</h3>
+                <button onclick="toggleModal(false)" class="text-gray-400 text-3xl">&times;</button>
             </div>
-            <form id="productForm" class="p-8 space-y-6">
-                <div class="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center">
+            
+            <form id="productForm" class="overflow-y-auto p-8 space-y-6">
+                <section class="border-2 border-dashed border-pink-100 bg-pink-50/30 rounded-2xl p-6 text-center">
                     <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
-                    <button type="button" onclick="document.getElementById('fileInput').click()" class="text-pink-400 font-bold">
-                        <i class="fas fa-cloud-upload-alt mr-2"></i>選擇圖片
-                    </button>
+                    <button type="button" onclick="document.getElementById('fileInput').click()" class="text-pink-500 font-bold">+ 選擇商品圖片</button>
                     <div id="previewArea" class="flex gap-2 mt-4 flex-wrap justify-center"></div>
+                </section>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-bold mb-2">商品名稱 *</label>
+                        <input type="text" id="pName" required class="w-full border p-3 rounded-lg outline-none focus:border-pink-300">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-2">品牌 / 分類</label>
+                        <input type="text" id="pBrand" class="w-full border p-3 rounded-lg outline-none focus:border-pink-300">
+                    </div>
                 </div>
 
-                <input type="text" id="pName" placeholder="商品名稱" required class="w-full border p-3 rounded-lg outline-none">
-                
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="relative">
-                        <span class="absolute left-3 top-3 text-gray-400">¥</span>
-                        <input type="number" id="pJpy" placeholder="日幣" class="w-full border p-3 pl-8 rounded-lg outline-none">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 p-6 rounded-2xl">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-2">日幣原價</label>
+                        <input type="number" id="pJpy" oninput="calcCost()" class="w-full border p-2.5 rounded-lg outline-none">
                     </div>
-                    <div class="relative">
-                        <span class="absolute left-3 top-3 text-gray-400">$</span>
-                        <input type="number" id="pPrice" placeholder="台幣售價" required class="w-full border p-3 pl-8 rounded-lg outline-none">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-2">匯率 (÷)</label>
+                        <input type="number" id="pRate" value="20" oninput="calcCost()" class="w-full border p-2.5 rounded-lg outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-2">成本 (自動計)</label>
+                        <input type="text" id="pCost" readonly class="w-full bg-white border p-2.5 rounded-lg text-gray-400 font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-pink-400 mb-2">台幣售價 *</label>
+                        <input type="number" id="pPrice" required class="w-full border p-2.5 rounded-lg outline-none focus:ring-1 focus:ring-pink-400">
                     </div>
                 </div>
-                
-                <input type="number" id="pStock" placeholder="庫存數量" value="0" class="w-full border p-3 rounded-lg outline-none">
+
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-bold mb-2">庫存數量</label>
+                        <input type="number" id="pStock" value="0" class="w-full border p-3 rounded-lg outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold mb-2">上架狀態</label>
+                        <select id="pStatus" class="w-full border p-3 rounded-lg bg-white outline-none">
+                            <option value="上架">上架</option>
+                            <option value="下架">下架</option>
+                        </select>
+                    </div>
+                </div>
             </form>
-            <div class="p-6 bg-gray-50 flex justify-end gap-3">
-                <button type="button" onclick="toggleModal(false)" class="px-6 py-2 border rounded-lg">取消</button>
-                <button type="submit" form="productForm" class="px-8 py-2 bg-black text-white rounded-lg font-bold">儲存雲端</button>
+
+            <div class="p-6 bg-gray-50 border-t flex justify-end gap-3 px-8">
+                <button type="button" onclick="toggleModal(false)" class="px-8 py-2.5 bg-white border rounded-lg">取消</button>
+                <button type="submit" form="productForm" class="px-10 py-2.5 bg-black text-white rounded-lg font-bold shadow-lg">儲存至雲端</button>
             </div>
         </div>
     </div>
 
     <script>
-        /** --- 配置區域 (請填寫你的資訊) --- **/
-        const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/你的_CLOUD_NAME/image/upload";
-        const CLOUDINARY_PRESET = "你的_UPLOAD_PRESET";
+        /** --- 填入你的雲端配置 --- **/
+        const CLOUD_NAME = "你的_CLOUD_NAME";
+        const UPLOAD_PRESET = "你的_UPLOAD_PRESET";
         const BASEROW_TOKEN = "你的_BASEROW_TOKEN";
-        const BASEROW_TABLE_ID = "你的_TABLE_ID";
-        const BASEROW_URL = `https://api.baserow.io/api/database/rows/table/${BASEROW_TABLE_ID}/?user_field_names=true`;
+        const TABLE_ID = "你的_TABLE_ID";
+
+        const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
+        const BASEROW_URL = `https://api.baserow.io/api/database/rows/table/${TABLE_ID}/?user_field_names=true`;
 
         let products = [];
         let tempFiles = [];
 
-        // 1. 處理圖片預覽
+        // 圖片預覽邏輯
         document.getElementById('fileInput').onchange = (e) => {
             const files = Array.from(e.target.files);
-            tempFiles = files; // 暫存 File 物件
+            tempFiles = files;
             const previewArea = document.getElementById('previewArea');
             previewArea.innerHTML = "";
             files.forEach(file => {
                 const reader = new FileReader();
                 reader.onload = (re) => {
-                    previewArea.innerHTML += `<img src="${re.target.result}" class="img-preview">`;
+                    previewArea.innerHTML += `<img src="${re.target.result}" class="w-16 h-16 object-cover rounded-lg border">`;
                 };
                 reader.readAsDataURL(file);
             });
         };
 
-        // 2. 上傳到 Cloudinary 並存到 Baserow
+        // 匯率計算
+        function calcCost() {
+            const jpy = parseFloat(document.getElementById('pJpy').value) || 0;
+            const rate = parseFloat(document.getElementById('pRate').value) || 1;
+            document.getElementById('pCost').value = Math.round(jpy / rate);
+        }
+
+        // 儲存邏輯 (Cloudinary + Baserow)
         document.getElementById('productForm').onsubmit = async (e) => {
             e.preventDefault();
-            showLoader(true, "正在上傳圖片至 Cloudinary...");
+            showLoader(true, "雲端處理中...");
 
             try {
-                // 多圖上傳邏輯
-                const uploadedUrls = [];
+                let uploadedUrls = [];
                 for (const file of tempFiles) {
                     const formData = new FormData();
                     formData.append('file', file);
-                    formData.append('upload_preset', CLOUDINARY_PRESET);
-                    
+                    formData.append('upload_preset', UPLOAD_PRESET);
                     const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: formData });
                     const data = await res.json();
                     uploadedUrls.push(data.secure_url);
                 }
 
-                showLoader(true, "正在將網址存入 Baserow...");
-                
-                // 存入 Baserow
                 const payload = {
                     "name": document.getElementById('pName').value,
+                    "brand": document.getElementById('pBrand').value,
                     "jpy": parseInt(document.getElementById('pJpy').value) || 0,
+                    "rate": parseInt(document.getElementById('pRate').value) || 20,
                     "price": parseInt(document.getElementById('pPrice').value) || 0,
                     "stock": parseInt(document.getElementById('pStock').value) || 0,
-                    "imgs": uploadedUrls.join('\n') // 將網址用換行隔開
+                    "status": document.getElementById('pStatus').value,
+                    "imgs": uploadedUrls.join('\n')
                 };
 
-                await fetch(BASEROW_URL, {
+                const saveRes = await fetch(BASEROW_URL, {
                     method: 'POST',
                     headers: { "Authorization": `Token ${BASEROW_TOKEN}`, "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
                 });
 
-                toggleModal(false);
-                fetchData();
+                if(saveRes.ok) {
+                    toggleModal(false);
+                    fetchData();
+                }
             } catch (err) {
-                alert("上傳失敗，請檢查 Cloudinary 設定");
+                alert("儲存失敗，請檢查網路");
             }
             showLoader(false);
         };
 
-        // 3. 讀取資料
         async function fetchData() {
-            showLoader(true, "同步雲端資料...");
+            showLoader(true, "同步資料...");
             try {
                 const res = await fetch(BASEROW_URL, { headers: { "Authorization": `Token ${BASEROW_TOKEN}` } });
                 const data = await res.json();
@@ -165,11 +214,18 @@
         function renderTable() {
             const tbody = document.getElementById('productTable');
             tbody.innerHTML = products.map(p => `
-                <tr class="hover:bg-gray-50 transition">
+                <tr class="hover:bg-gray-50 transition border-b">
                     <td class="px-6 py-4"><img src="${p.imgs?.split('\n')[0]}" class="w-12 h-12 object-cover rounded shadow-sm"></td>
-                    <td class="px-6 py-4 font-bold">${p.name}</td>
-                    <td class="px-6 py-4 text-center font-bold text-pink-500">$${p.price}</td>
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-gray-800">${p.name}</div>
+                        <div class="text-xs text-gray-400">${p.brand || '-'}</div>
+                    </td>
+                    <td class="px-6 py-4 text-center font-bold text-pink-500">¥${p.jpy}</td>
+                    <td class="px-6 py-4 text-center font-bold">$${p.price}</td>
                     <td class="px-6 py-4 text-center">${p.stock}</td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="px-2 py-1 rounded-full text-[10px] ${p.status === '上架' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}">${p.status}</span>
+                    </td>
                     <td class="px-6 py-4 text-center">
                         <button onclick="deleteRow(${p.id})" class="text-red-400 hover:underline">刪除</button>
                     </td>
@@ -178,9 +234,9 @@
         }
 
         async function deleteRow(id) {
-            if(!confirm('刪除後無法復原，確定？')) return;
-            showLoader(true, "正在刪除...");
-            await fetch(`https://api.baserow.io/api/database/rows/table/${BASEROW_TABLE_ID}/${id}/`, {
+            if(!confirm('確定刪除？')) return;
+            showLoader(true);
+            await fetch(`https://api.baserow.io/api/database/rows/table/${TABLE_ID}/${id}/`, {
                 method: 'DELETE',
                 headers: { "Authorization": `Token ${BASEROW_TOKEN}` }
             });
@@ -192,6 +248,7 @@
             if(!show) {
                 document.getElementById('productForm').reset();
                 document.getElementById('previewArea').innerHTML = "";
+                tempFiles = [];
             }
         }
 
