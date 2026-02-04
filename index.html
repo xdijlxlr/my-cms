@@ -11,8 +11,6 @@
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #f9fafb; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 50; }
         .modal.active { display: flex; }
-        .sidebar-item:hover { background-color: #2d2d2d; transition: 0.3s; }
-        /* 隱藏滾動條但保持功能 */
         .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
@@ -21,40 +19,32 @@
     <aside class="w-64 bg-black text-white flex-shrink-0 hidden md:block">
         <div class="p-6">
             <h1 class="text-xl font-bold tracking-widest text-white">OMO ADMIN</h1>
-            <p class="text-xs text-gray-400 mt-1">- MAARU日本萌物</p>
+            <p class="text-xs text-gray-400 mt-1">- 管理系統</p>
         </div>
         <nav class="mt-4">
-            <a href="#" class="sidebar-item flex items-center px-6 py-3 text-gray-400"><i class="fas fa-chart-line mr-3 w-5"></i>總覽報表</a>
-            <a href="#" class="sidebar-item flex items-center px-6 py-3 text-gray-400"><i class="fas fa-list-ul mr-3 w-5"></i>訂單管理</a>
-            <a href="#" class="sidebar-item flex items-center px-6 py-3 bg-gray-800 text-white border-l-4 border-pink-400 font-bold">
+            <a href="#" class="flex items-center px-6 py-3 bg-gray-800 text-white border-l-4 border-pink-400 font-bold">
                 <i class="fas fa-box mr-3 w-5 text-pink-400"></i>商品管理
             </a>
-            <a href="#" class="sidebar-item flex items-center px-6 py-3 text-gray-400"><i class="fas fa-th-large mr-3 w-5"></i>首頁排版</a>
-            <a href="#" class="sidebar-item flex items-center px-6 py-3 text-gray-400"><i class="fas fa-calculator mr-3 w-5"></i>採買統計</a>
-            <a href="#" class="sidebar-item flex items-center px-6 py-3 text-gray-400"><i class="fas fa-cog mr-3 w-5"></i>網站設定</a>
         </nav>
-        <div class="absolute bottom-8 w-64 px-6">
-            <button class="text-gray-400 text-sm hover:text-white transition">登出</button>
+        <div class="absolute bottom-8 w-64 px-6 text-gray-500 text-xs">
+            v1.0.0
         </div>
     </aside>
 
     <main class="flex-1 p-8 overflow-y-auto">
         <header class="flex justify-between items-center mb-8">
             <h2 class="text-2xl font-bold text-gray-800">商品管理</h2>
-            <a href="#" class="text-gray-400 hover:text-pink-500 text-sm transition">前往官網 <i class="fas fa-external-link-alt ml-1"></i></a>
         </header>
 
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-center">
             <button onclick="toggleModal(true)" class="bg-pink-400 text-white px-6 py-2.5 rounded-lg hover:bg-pink-500 transition shadow-sm font-medium">
                 + 新增商品
             </button>
-            <button class="border border-gray-200 px-4 py-2.5 rounded-lg hover:bg-gray-50 text-gray-600 transition">匯出 CSV</button>
             <div class="flex-1 relative min-w-[200px]">
                 <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                <input type="text" id="searchInput" placeholder="搜尋商品名稱、分類、品牌..." 
+                <input type="text" id="searchInput" placeholder="搜尋商品名稱..." 
                        class="w-full pl-11 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-100 transition">
             </div>
-            <button class="bg-gray-800 text-white px-8 py-2.5 rounded-lg hover:bg-black transition">搜尋</button>
         </div>
 
         <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -64,10 +54,9 @@
                         <th class="px-6 py-4">編號</th>
                         <th class="px-6 py-4">圖片</th>
                         <th class="px-6 py-4">名稱</th>
-                        <th class="px-6 py-4 text-center">售價</th>
-                        <th class="px-6 py-4 text-center">利潤</th>
+                        <th class="px-6 py-4 text-center text-pink-500">日幣原價</th>
+                        <th class="px-6 py-4 text-center">台幣售價</th>
                         <th class="px-6 py-4 text-center">庫存</th>
-                        <th class="px-6 py-4 text-center">狀態</th>
                         <th class="px-6 py-4 text-center">操作</th>
                     </tr>
                 </thead>
@@ -78,18 +67,17 @@
     </main>
 
     <div id="productModal" class="modal items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl">
-            <div class="flex justify-between items-center px-8 py-5 border-b sticky top-0 bg-white z-10">
+        <div class="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+            <div class="flex justify-between items-center px-8 py-5 border-b bg-white">
                 <h3 class="text-xl font-bold text-gray-800">編輯商品</h3>
-                <button onclick="toggleModal(false)" class="text-gray-400 hover:text-gray-600 text-3xl transition">&times;</button>
+                <button onclick="toggleModal(false)" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
             </div>
             
-            <form id="productForm" class="overflow-y-auto p-8 space-y-8 no-scrollbar">
+            <form id="productForm" class="overflow-y-auto p-8 space-y-6 no-scrollbar">
                 <section>
-                    <div class="border-2 border-dashed border-pink-100 bg-pink-50/30 rounded-2xl p-10 text-center cursor-pointer hover:bg-pink-50 transition relative group" id="dropzone">
-                        <i class="fas fa-camera text-4xl text-gray-300 group-hover:text-pink-300 transition mb-3"></i>
-                        <p class="text-gray-600 font-medium">點擊選擇圖片 或 拖放到此處</p>
-                        <p class="text-xs text-gray-400 mt-2">支援 JPG, PNG, WEBP (最大 5MB)</p>
+                    <div class="border-2 border-dashed border-pink-100 bg-pink-50/30 rounded-2xl p-8 text-center cursor-pointer hover:bg-pink-50 transition relative group" id="dropzone">
+                        <i class="fas fa-camera text-3xl text-gray-300 mb-2"></i>
+                        <p class="text-gray-600 font-medium">點擊選擇圖片</p>
                         <input type="file" id="fileInput" class="hidden" accept="image/*">
                         <img id="preview" class="hidden absolute inset-0 w-full h-full object-contain bg-white rounded-2xl p-2">
                     </div>
@@ -101,63 +89,48 @@
                         <input type="text" id="pName" required class="w-full border border-gray-200 rounded-lg p-3 outline-none focus:border-pink-300">
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">品牌名稱 (圖片分類)</label>
-                        <input type="text" id="pBrand" placeholder="選擇或輸入品牌" class="w-full border border-gray-200 rounded-lg p-3 outline-none focus:border-pink-300">
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-bold text-gray-700 mb-2">分類</label>
-                        <input type="text" id="pCat" class="w-full border border-gray-200 rounded-lg p-3 outline-none focus:border-pink-300">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">品牌名稱</label>
+                        <input type="text" id="pBrand" class="w-full border border-gray-200 rounded-lg p-3 outline-none focus:border-pink-300">
                     </div>
                 </section>
 
                 <section class="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 p-6 rounded-2xl">
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-2 uppercase">台幣售價 *</label>
-                        <input type="number" id="pPrice" required class="w-full border border-gray-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-pink-100">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-2 uppercase">韓幣原價</label>
+                        <label class="block text-xs font-bold text-gray-500 mb-2 uppercase">日幣原價</label>
                         <div class="relative">
-                            <span class="absolute left-3 top-2.5 text-gray-400 font-serif">₩</span>
-                            <input type="number" id="pKrw" oninput="calcCost()" class="w-full border border-gray-200 rounded-lg p-2.5 pl-8 outline-none focus:ring-2 focus:ring-pink-100">
+                            <span class="absolute left-3 top-2.5 text-gray-400">¥</span>
+                            <input type="number" id="pJpy" oninput="calcCost()" class="w-full border border-gray-200 rounded-lg p-2.5 pl-8 outline-none focus:ring-2 focus:ring-pink-100">
                         </div>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-2 uppercase">匯率 (÷)</label>
-                        <input type="number" id="pRate" value="40" oninput="calcCost()" class="w-full border border-gray-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-pink-100">
+                        <input type="number" id="pRate" value="20" oninput="calcCost()" class="w-full border border-gray-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-pink-100">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-2 uppercase text-pink-400">成本 (台幣)</label>
+                        <label class="block text-xs font-bold text-gray-500 mb-2 uppercase">成本 (台幣)</label>
                         <input type="text" id="pCost" readonly class="w-full bg-white border border-gray-100 rounded-lg p-2.5 outline-none text-gray-400 font-bold" placeholder="自動計算">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-2 uppercase text-pink-400">台幣售價 *</label>
+                        <input type="number" id="pPrice" required class="w-full border border-gray-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-pink-100">
                     </div>
                 </section>
 
-                <section class="space-y-4">
-                    <h4 class="font-bold text-gray-800 flex items-center"><span class="w-1.5 h-5 bg-pink-400 rounded-full mr-2"></span>規格設定</h4>
-                    <div class="flex gap-4 items-end bg-white border border-gray-100 p-4 rounded-xl">
-                        <div class="flex-1">
-                            <label class="text-[10px] font-bold text-gray-400 mb-1 block">類別 (如：尺寸)</label>
-                            <input type="text" placeholder="例：尺寸" class="w-full border-b border-gray-200 py-1 outline-none">
+                <section class="space-y-3">
+                    <h4 class="font-bold text-gray-800">規格設定</h4>
+                    <div id="specsContainer" class="space-y-3">
+                        <div class="flex gap-4 items-end bg-white border border-gray-100 p-4 rounded-xl">
+                            <input type="text" placeholder="尺寸" class="flex-1 border-b border-gray-200 py-1 outline-none">
+                            <input type="text" placeholder="選項 (用逗號分隔)" class="flex-[2] border-b border-gray-200 py-1 outline-none">
                         </div>
-                        <div class="flex-[2]">
-                            <label class="text-[10px] font-bold text-gray-400 mb-1 block">選項用逗號分開 (如：S,M,L)</label>
-                            <input type="text" placeholder="S, M, L" class="w-full border-b border-gray-200 py-1 outline-none">
-                        </div>
-                        <button type="button" class="bg-red-50 text-red-400 p-2 rounded-lg hover:bg-red-500 hover:text-white transition"><i class="fas fa-times"></i></button>
                     </div>
-                    <button type="button" class="text-pink-400 text-sm hover:text-pink-600 font-bold transition">+ 新增規格類別 (例如：顏色、尺寸)</button>
+                    <button type="button" class="text-pink-400 text-sm font-bold">+ 新增規格類別</button>
                 </section>
 
                 <section class="grid grid-cols-2 gap-6 pt-6 border-t border-gray-100">
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-2">庫存</label>
-                        <div class="flex border border-gray-200 rounded-lg overflow-hidden">
-                            <input type="number" id="pStock" value="0" class="w-full p-3 outline-none">
-                            <div class="flex flex-col border-l border-gray-200">
-                                <button type="button" onclick="pStock.value++" class="px-3 bg-gray-50 hover:bg-gray-100 border-b border-gray-200">▲</button>
-                                <button type="button" onclick="if(pStock.value > 0) pStock.value--" class="px-3 bg-gray-50 hover:bg-gray-100">▼</button>
-                            </div>
-                        </div>
+                        <input type="number" id="pStock" value="0" class="w-full border border-gray-200 rounded-lg p-3 outline-none">
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-2">狀態</label>
@@ -168,114 +141,85 @@
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm font-bold text-gray-700 mb-2">描述</label>
-                        <textarea id="pDesc" rows="4" class="w-full border border-gray-200 rounded-lg p-3 outline-none focus:border-pink-300 resize-none"></textarea>
+                        <textarea id="pDesc" rows="3" class="w-full border border-gray-200 rounded-lg p-3 outline-none focus:border-pink-300 resize-none"></textarea>
                     </div>
                 </section>
             </form>
 
             <div class="p-6 bg-gray-50 border-t flex justify-end gap-3 px-8">
-                <button type="button" onclick="toggleModal(false)" class="px-10 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-600 font-medium hover:bg-gray-100 transition">取消</button>
+                <button type="button" onclick="toggleModal(false)" class="px-8 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 transition">取消</button>
                 <button type="submit" form="productForm" class="px-10 py-2.5 bg-black text-white rounded-lg font-bold hover:bg-gray-800 shadow-lg transition">儲存</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- 核心資料讀取 (LocalStorage) ---
-        let products = JSON.parse(localStorage.getItem('omo_cms_data')) || [
-            { 
-                id: 'P1769865061826276', 
-                name: '手機吊鏈', 
-                price: 499, 
-                profit: 499, 
-                krw: 2000, 
-                cost: 0, 
-                stock: 1, 
-                status: '上架', 
-                img: 'https://images.unsplash.com/photo-1616348436168-de43ad0db179?auto=format&fit=crop&w=100' 
-            }
-        ];
+        // 本地儲存邏輯
+        let products = JSON.parse(localStorage.getItem('omo_lite_cms')) || [];
 
-        // 儲存資料
         function saveToLocal() {
-            localStorage.setItem('omo_cms_data', JSON.stringify(products));
+            localStorage.setItem('omo_lite_cms', JSON.stringify(products));
         }
 
-        // --- UI 控制 ---
         function toggleModal(show) {
             const modal = document.getElementById('productModal');
             show ? modal.classList.add('active') : modal.classList.remove('active');
             if(!show) {
                 document.getElementById('productForm').reset();
                 document.getElementById('preview').classList.add('hidden');
+                document.getElementById('pCost').value = "";
             }
         }
 
-        // --- 匯率與成本計算 (圖三邏輯) ---
         function calcCost() {
-            const krw = parseFloat(document.getElementById('pKrw').value) || 0;
+            const jpy = parseFloat(document.getElementById('pJpy').value) || 0;
             const rate = parseFloat(document.getElementById('pRate').value) || 1;
-            document.getElementById('pCost').value = Math.round(krw / rate);
+            document.getElementById('pCost').value = Math.round(jpy / rate); // 匯率除法
         }
 
-        // --- 渲染表格 (圖四邏輯) ---
         function renderTable() {
             const tbody = document.getElementById('productTable');
             tbody.innerHTML = products.map((p, index) => `
-                <tr class="hover:bg-gray-50/80 transition group">
-                    <td class="px-6 py-5 text-xs text-blue-500 font-mono tracking-tighter">${p.id}</td>
+                <tr class="hover:bg-gray-50/80 transition">
+                    <td class="px-6 py-5 text-xs text-blue-500 font-mono">${p.id}</td>
                     <td class="px-6 py-5"><img src="${p.img}" class="w-12 h-12 object-cover rounded-lg shadow-sm"></td>
-                    <td class="px-6 py-5 font-medium text-blue-600 hover:underline cursor-pointer">${p.name}</td>
-                    <td class="px-6 py-5 text-center font-bold">${p.price}</td>
-                    <td class="px-6 py-5 text-center text-green-500 font-bold">${p.profit}</td>
+                    <td class="px-6 py-5 font-medium">${p.name}</td>
+                    <td class="px-6 py-5 text-center font-bold text-pink-500">¥${p.jpy}</td>
+                    <td class="px-6 py-5 text-center font-bold">$${p.price}</td>
                     <td class="px-6 py-5 text-center">${p.stock}</td>
-                    <td class="px-6 py-5 text-center">
-                        <span class="${p.status === '上架' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-400'} px-3 py-1 rounded-full text-[10px] font-bold">
-                            ● ${p.status}中
-                        </span>
-                    </td>
                     <td class="px-6 py-5 text-center space-x-3">
-                        <button class="text-gray-400 hover:text-black font-medium transition">編輯</button>
-                        <button onclick="deleteProduct(${index})" class="bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600 shadow-sm transition">刪除</button>
+                        <button onclick="deleteProduct(${index})" class="text-red-500 hover:underline">刪除</button>
                     </td>
                 </tr>
             `).join('');
         }
 
-        // --- 提交表單 ---
         document.getElementById('productForm').onsubmit = function(e) {
             e.preventDefault();
-            const price = parseFloat(document.getElementById('pPrice').value);
-            const cost = parseFloat(document.getElementById('pCost').value) || 0;
-            
             const newProduct = {
                 id: 'P' + Date.now(),
                 name: document.getElementById('pName').value,
-                price: price,
-                profit: price - cost,
-                krw: document.getElementById('pKrw').value || 0,
-                cost: cost,
+                jpy: document.getElementById('pJpy').value || 0,
+                price: document.getElementById('pPrice').value,
                 stock: document.getElementById('pStock').value,
                 status: document.getElementById('pStatus').value,
-                img: document.getElementById('preview').src || 'https://via.placeholder.com/100?text=No+Image'
+                img: document.getElementById('preview').src || 'https://via.placeholder.com/100?text=No+Img'
             };
-            
             products.unshift(newProduct);
             saveToLocal();
             renderTable();
             toggleModal(false);
         };
 
-        // --- 刪除商品 ---
         function deleteProduct(index) {
-            if(confirm('確定要移除這項商品嗎？')) {
+            if(confirm('確定刪除？')) {
                 products.splice(index, 1);
                 saveToLocal();
                 renderTable();
             }
         }
 
-        // --- 圖片預覽處理 (圖一) ---
+        // 圖片處理
         const dropzone = document.getElementById('dropzone');
         const fileInput = document.getElementById('fileInput');
         const preview = document.getElementById('preview');
@@ -293,7 +237,6 @@
             }
         };
 
-        // 初始化
         renderTable();
     </script>
 </body>
