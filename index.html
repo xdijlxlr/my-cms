@@ -12,6 +12,9 @@
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 50; }
         .modal.active { display: flex; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        .img-preview-container { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; justify-content: center; }
+        .preview-wrapper { position: relative; width: 80px; height: 80px; }
+        .preview-wrapper img { width: 100%; height: 100%; object-cover: cover; border-radius: 8px; border: 1px solid #eee; }
     </style>
 </head>
 <body class="flex min-h-screen">
@@ -26,9 +29,6 @@
                 <i class="fas fa-box mr-3 w-5 text-pink-400"></i>商品管理
             </a>
         </nav>
-        <div class="absolute bottom-8 w-64 px-6 text-gray-500 text-xs">
-            v1.0.0
-        </div>
     </aside>
 
     <main class="flex-1 p-8 overflow-y-auto">
@@ -42,7 +42,7 @@
             </button>
             <div class="flex-1 relative min-w-[200px]">
                 <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                <input type="text" id="searchInput" placeholder="搜尋商品名稱..." 
+                <input type="text" id="searchInput" oninput="searchProduct()" placeholder="搜尋商品名稱..." 
                        class="w-full pl-11 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-100 transition">
             </div>
         </div>
@@ -60,8 +60,7 @@
                         <th class="px-6 py-4 text-center">操作</th>
                     </tr>
                 </thead>
-                <tbody id="productTable" class="divide-y divide-gray-100 text-sm text-gray-700">
-                    </tbody>
+                <tbody id="productTable" class="divide-y divide-gray-100 text-sm text-gray-700"></tbody>
             </table>
         </div>
     </main>
@@ -69,28 +68,29 @@
     <div id="productModal" class="modal items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
             <div class="flex justify-between items-center px-8 py-5 border-b bg-white">
-                <h3 class="text-xl font-bold text-gray-800">編輯商品</h3>
+                <h3 class="text-xl font-bold text-gray-800">編輯/新增商品</h3>
                 <button onclick="toggleModal(false)" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
             </div>
             
             <form id="productForm" class="overflow-y-auto p-8 space-y-6 no-scrollbar">
                 <section>
-                    <div class="border-2 border-dashed border-pink-100 bg-pink-50/30 rounded-2xl p-8 text-center cursor-pointer hover:bg-pink-50 transition relative group" id="dropzone">
-                        <i class="fas fa-camera text-3xl text-gray-300 mb-2"></i>
-                        <p class="text-gray-600 font-medium">點擊選擇圖片</p>
-                        <input type="file" id="fileInput" class="hidden" accept="image/*">
-                        <img id="preview" class="hidden absolute inset-0 w-full h-full object-contain bg-white rounded-2xl p-2">
+                    <div class="border-2 border-dashed border-pink-100 bg-pink-50/30 rounded-2xl p-8 text-center cursor-pointer hover:bg-pink-50 transition relative" id="dropzone">
+                        <i class="fas fa-images text-3xl text-gray-300 mb-2"></i>
+                        <p class="text-gray-600 font-medium">點擊選取多張圖片</p>
+                        <p id="fileCount" class="text-xs text-pink-400 mt-1 font-bold"></p>
+                        <input type="file" id="fileInput" class="hidden" accept="image/*" multiple>
+                        <div id="previewContainer" class="img-preview-container"></div>
                     </div>
                 </section>
 
                 <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-2">商品名稱 *</label>
-                        <input type="text" id="pName" required class="w-full border border-gray-200 rounded-lg p-3 outline-none focus:border-pink-300">
+                        <input type="text" id="pName" required class="w-full border border-gray-200 rounded-lg p-3 outline-none">
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-2">品牌名稱</label>
-                        <input type="text" id="pBrand" class="w-full border border-gray-200 rounded-lg p-3 outline-none focus:border-pink-300">
+                        <input type="text" id="pBrand" class="w-full border border-gray-200 rounded-lg p-3 outline-none">
                     </div>
                 </section>
 
@@ -99,66 +99,51 @@
                         <label class="block text-xs font-bold text-gray-500 mb-2 uppercase">日幣原價</label>
                         <div class="relative">
                             <span class="absolute left-3 top-2.5 text-gray-400">¥</span>
-                            <input type="number" id="pJpy" oninput="calcCost()" class="w-full border border-gray-200 rounded-lg p-2.5 pl-8 outline-none focus:ring-2 focus:ring-pink-100">
+                            <input type="number" id="pJpy" oninput="calcCost()" class="w-full border border-gray-200 rounded-lg p-2.5 pl-8 outline-none">
                         </div>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-2 uppercase">匯率 (÷)</label>
-                        <input type="number" id="pRate" value="20" oninput="calcCost()" class="w-full border border-gray-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-pink-100">
+                        <input type="number" id="pRate" value="20" oninput="calcCost()" class="w-full border border-gray-200 rounded-lg p-2.5 outline-none">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-2 uppercase">成本 (台幣)</label>
-                        <input type="text" id="pCost" readonly class="w-full bg-white border border-gray-100 rounded-lg p-2.5 outline-none text-gray-400 font-bold" placeholder="自動計算">
+                        <input type="text" id="pCost" readonly class="w-full bg-white border border-gray-100 rounded-lg p-2.5 text-gray-400 font-bold" placeholder="自動計算">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-2 uppercase text-pink-400">台幣售價 *</label>
-                        <input type="number" id="pPrice" required class="w-full border border-gray-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-pink-100">
+                        <input type="number" id="pPrice" required class="w-full border border-gray-200 rounded-lg p-2.5 outline-none">
                     </div>
                 </section>
 
-                <section class="space-y-3">
-                    <h4 class="font-bold text-gray-800">規格設定</h4>
-                    <div id="specsContainer" class="space-y-3">
-                        <div class="flex gap-4 items-end bg-white border border-gray-100 p-4 rounded-xl">
-                            <input type="text" placeholder="尺寸" class="flex-1 border-b border-gray-200 py-1 outline-none">
-                            <input type="text" placeholder="選項 (用逗號分隔)" class="flex-[2] border-b border-gray-200 py-1 outline-none">
-                        </div>
-                    </div>
-                    <button type="button" class="text-pink-400 text-sm font-bold">+ 新增規格類別</button>
-                </section>
-
-                <section class="grid grid-cols-2 gap-6 pt-6 border-t border-gray-100">
+                <section class="grid grid-cols-2 gap-6">
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-2">庫存</label>
                         <input type="number" id="pStock" value="0" class="w-full border border-gray-200 rounded-lg p-3 outline-none">
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-2">狀態</label>
-                        <select id="pStatus" class="w-full border border-gray-200 rounded-lg p-3.5 outline-none bg-white">
+                        <select id="pStatus" class="w-full border border-gray-200 rounded-lg p-3.5 bg-white">
                             <option value="上架">上架</option>
                             <option value="下架">下架</option>
                         </select>
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-bold text-gray-700 mb-2">描述</label>
-                        <textarea id="pDesc" rows="3" class="w-full border border-gray-200 rounded-lg p-3 outline-none focus:border-pink-300 resize-none"></textarea>
                     </div>
                 </section>
             </form>
 
             <div class="p-6 bg-gray-50 border-t flex justify-end gap-3 px-8">
-                <button type="button" onclick="toggleModal(false)" class="px-8 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 transition">取消</button>
+                <button type="button" onclick="toggleModal(false)" class="px-8 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100">取消</button>
                 <button type="submit" form="productForm" class="px-10 py-2.5 bg-black text-white rounded-lg font-bold hover:bg-gray-800 shadow-lg transition">儲存</button>
             </div>
         </div>
     </div>
 
     <script>
-        // 本地儲存邏輯
-        let products = JSON.parse(localStorage.getItem('omo_lite_cms')) || [];
+        let products = JSON.parse(localStorage.getItem('omo_multi_img_cms')) || [];
+        let currentImages = []; // 用於存放當前上傳的 base64 字串
 
         function saveToLocal() {
-            localStorage.setItem('omo_lite_cms', JSON.stringify(products));
+            localStorage.setItem('omo_multi_img_cms', JSON.stringify(products));
         }
 
         function toggleModal(show) {
@@ -166,15 +151,16 @@
             show ? modal.classList.add('active') : modal.classList.remove('active');
             if(!show) {
                 document.getElementById('productForm').reset();
-                document.getElementById('preview').classList.add('hidden');
-                document.getElementById('pCost').value = "";
+                document.getElementById('previewContainer').innerHTML = "";
+                document.getElementById('fileCount').innerText = "";
+                currentImages = [];
             }
         }
 
         function calcCost() {
             const jpy = parseFloat(document.getElementById('pJpy').value) || 0;
             const rate = parseFloat(document.getElementById('pRate').value) || 1;
-            document.getElementById('pCost').value = Math.round(jpy / rate); // 匯率除法
+            document.getElementById('pCost').value = Math.round(jpy / rate);
         }
 
         function renderTable() {
@@ -182,17 +168,45 @@
             tbody.innerHTML = products.map((p, index) => `
                 <tr class="hover:bg-gray-50/80 transition">
                     <td class="px-6 py-5 text-xs text-blue-500 font-mono">${p.id}</td>
-                    <td class="px-6 py-5"><img src="${p.img}" class="w-12 h-12 object-cover rounded-lg shadow-sm"></td>
+                    <td class="px-6 py-5">
+                        <img src="${p.imgs[0] || 'https://via.placeholder.com/100'}" class="w-12 h-12 object-cover rounded-lg shadow-sm">
+                        ${p.imgs.length > 1 ? `<span class="text-[10px] text-gray-400">+${p.imgs.length - 1}</span>` : ''}
+                    </td>
                     <td class="px-6 py-5 font-medium">${p.name}</td>
                     <td class="px-6 py-5 text-center font-bold text-pink-500">¥${p.jpy}</td>
                     <td class="px-6 py-5 text-center font-bold">$${p.price}</td>
                     <td class="px-6 py-5 text-center">${p.stock}</td>
-                    <td class="px-6 py-5 text-center space-x-3">
+                    <td class="px-6 py-5 text-center">
                         <button onclick="deleteProduct(${index})" class="text-red-500 hover:underline">刪除</button>
                     </td>
                 </tr>
             `).join('');
         }
+
+        // 圖片上傳與預覽
+        const fileInput = document.getElementById('fileInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const dropzone = document.getElementById('dropzone');
+
+        dropzone.onclick = (e) => { if(e.target.id !== 'fileInput') fileInput.click(); };
+
+        fileInput.onchange = (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length > 0) {
+                document.getElementById('fileCount').innerText = `已選擇 ${files.length} 張圖片`;
+                files.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (re) => {
+                        currentImages.push(re.target.result);
+                        const div = document.createElement('div');
+                        div.className = 'preview-wrapper';
+                        div.innerHTML = `<img src="${re.target.result}">`;
+                        previewContainer.appendChild(div);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+        };
 
         document.getElementById('productForm').onsubmit = function(e) {
             e.preventDefault();
@@ -203,7 +217,7 @@
                 price: document.getElementById('pPrice').value,
                 stock: document.getElementById('pStock').value,
                 status: document.getElementById('pStatus').value,
-                img: document.getElementById('preview').src || 'https://via.placeholder.com/100?text=No+Img'
+                imgs: currentImages // 儲存多張圖片陣列
             };
             products.unshift(newProduct);
             saveToLocal();
@@ -212,30 +226,12 @@
         };
 
         function deleteProduct(index) {
-            if(confirm('確定刪除？')) {
+            if(confirm('確定刪除此商品？')) {
                 products.splice(index, 1);
                 saveToLocal();
                 renderTable();
             }
         }
-
-        // 圖片處理
-        const dropzone = document.getElementById('dropzone');
-        const fileInput = document.getElementById('fileInput');
-        const preview = document.getElementById('preview');
-
-        dropzone.onclick = () => fileInput.click();
-        fileInput.onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (re) => {
-                    preview.src = re.target.result;
-                    preview.classList.remove('hidden');
-                };
-                reader.readAsDataURL(file);
-            }
-        };
 
         renderTable();
     </script>
