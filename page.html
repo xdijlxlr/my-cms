@@ -3,165 +3,246 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OMO Store - Baserow Cloud 版</title>
+    <title>OMO Store - 雲端精品店</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: #fce4ec; }
-        .product-card { background: white; border-radius: 20px; transition: 0.3s; cursor: pointer; }
-        .product-card:hover { transform: translateY(-5px); }
-        .btn-pink { background-color: #d19297; color: white; border-radius: 25px; }
-        .detail-modal { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.98); z-index: 100; overflow-y: auto; }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #fffafb; color: #4a4a4a; }
+        
+        /* 圖一：商品卡片樣式 */
+        .product-card { 
+            background: white; 
+            border-radius: 24px; 
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            cursor: pointer;
+            border: 1px solid #fce4ec;
+        }
+        .product-card:hover { 
+            transform: translateY(-10px); 
+            box-shadow: 0 20px 25px -5px rgba(255, 182, 193, 0.2);
+        }
+        
+        /* 圖二：詳情彈窗樣式 */
+        .detail-modal { 
+            display: none; 
+            position: fixed; 
+            inset: 0; 
+            background: rgba(255, 255, 255, 0.98); 
+            z-index: 100; 
+            overflow-y: auto; 
+        }
         .detail-modal.active { display: block; }
-        .loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; items-center; justify-content: center; z-index: 200; color: white; }
+        
+        .thumb-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid transparent;
+            transition: 0.2s;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .thumb-btn.active { border-color: #d19297; }
+        .thumb-btn img { width: 100%; height: 100%; object-fit: cover; }
+
+        .btn-pink { 
+            background-color: #d19297; 
+            color: white; 
+            border-radius: 30px; 
+            transition: 0.3s;
+        }
+        .btn-pink:hover { background-color: #b57a7f; transform: scale(1.02); }
+        
+        .loading-overlay { 
+            position: fixed; inset: 0; background: white; 
+            display: flex; items-center; justify-content: center; 
+            z-index: 200; flex-direction: column; 
+        }
     </style>
 </head>
 <body>
 
-    <div id="loading" class="loading-overlay flex-col">
-        <i class="fas fa-spinner fa-spin text-4xl mb-2"></i>
-        <span>資料傳輸中...</span>
+    <div id="loading" class="loading-overlay">
+        <i class="fas fa-heart fa-beat text-pink-300 text-5xl mb-4"></i>
+        <span class="text-gray-400 tracking-widest text-sm">LOADING OMO STORE...</span>
     </div>
 
-    <div class="fixed bottom-4 right-4 z-50">
-        <button onclick="toggleAdmin()" class="bg-black text-white p-3 rounded-full shadow-lg opacity-50 hover:opacity-100 transition">
-            <i class="fas fa-cog"></i>
-        </button>
-    </div>
-
-    <section id="shopFront">
-        <nav class="p-6 flex justify-between items-center bg-white shadow-sm mb-8">
-            <div class="text-2xl font-bold tracking-widest text-pink-400">OMO STORE</div>
-            <button class="border border-pink-200 px-4 py-1 rounded-full text-sm">購物車 <span id="cartCount">0</span></button>
-        </nav>
-        <main class="max-w-6xl mx-auto px-4 pb-20">
-            <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"></div>
-        </main>
-    </section>
-
-    <div id="detailModal" class="detail-modal p-4 md:p-10">
-        <button onclick="closeDetail()" class="fixed top-6 left-6 text-2xl"><i class="fas fa-chevron-left"></i></button>
-        <div id="detailContent" class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 mt-10"></div>
-    </div>
-
-    <section id="adminPanel" class="hidden fixed inset-0 bg-gray-100 z-[60] overflow-y-auto p-8">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold">商品管理 (Baserow 雲端版)</h2>
-            <button onclick="toggleAdmin()" class="text-red-500">關閉管理面板</button>
+    <nav class="sticky top-0 z-40 bg-white/80 backdrop-blur-md px-6 py-4 flex justify-between items-center border-b border-pink-50">
+        <div class="text-2xl font-bold tracking-[0.2em] text-pink-400">OMO STORE</div>
+        <div class="flex items-center gap-6">
+            <button class="text-gray-400 hover:text-pink-400 transition"><i class="fas fa-search"></i></button>
+            <button class="relative text-gray-400 hover:text-pink-400 transition">
+                <i class="fas fa-shopping-bag"></i>
+                <span id="cartCount" class="absolute -top-2 -right-2 bg-pink-400 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">0</span>
+            </button>
         </div>
-        <form id="productForm" class="bg-white p-6 rounded-xl shadow-md mb-6 space-y-4">
-            <input type="text" id="pName" placeholder="商品名稱" class="w-full border p-2 rounded" required>
-            <div class="grid grid-cols-2 gap-4">
-                <input type="number" id="pJpy" placeholder="日幣原價" class="border p-2 rounded">
-                <input type="number" id="pPrice" placeholder="台幣售價" class="border p-2 rounded" required>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-12">
+        <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
             </div>
-            <textarea id="pImgs" placeholder="圖片連結 (多張請換行)" class="w-full border p-2 rounded h-24"></textarea>
-            <button type="submit" class="w-full bg-pink-400 text-white py-3 rounded font-bold">新增商品至雲端</button>
-        </form>
-        <div id="adminTable" class="bg-white rounded-xl shadow-md overflow-hidden"></div>
-    </section>
+    </main>
+
+    <div id="detailModal" class="detail-modal">
+        <div class="max-w-6xl mx-auto px-6 py-10">
+            <button onclick="closeDetail()" class="mb-8 text-gray-400 hover:text-black transition flex items-center gap-2">
+                <i class="fas fa-arrow-left"></i> BACK TO SHOP
+            </button>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+                <div class="space-y-6">
+                    <div class="bg-gray-50 rounded-[40px] overflow-hidden aspect-square shadow-inner flex items-center justify-center p-8">
+                        <img id="mainImg" src="" class="max-w-full max-h-full object-contain transition-opacity duration-300">
+                    </div>
+                    <div id="thumbContainer" class="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+                        </div>
+                </div>
+
+                <div class="pt-4 space-y-8">
+                    <div>
+                        <p id="detailBrand" class="text-pink-300 font-bold tracking-widest text-sm mb-2 uppercase"></p>
+                        <h2 id="detailName" class="text-4xl font-bold text-gray-800 leading-tight"></h2>
+                    </div>
+                    
+                    <div id="detailPrice" class="text-3xl font-light text-gray-900"></div>
+
+                    <div class="space-y-4">
+                        <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Quantity</label>
+                        <div class="flex items-center border border-gray-200 w-32 rounded-full px-2">
+                            <button onclick="updateQty(-1)" class="w-10 h-10 flex items-center justify-center hover:text-pink-400 transition">-</button>
+                            <input type="number" id="buyQty" value="1" readonly class="w-10 text-center bg-transparent font-bold">
+                            <button onclick="updateQty(1)" class="w-10 h-10 flex items-center justify-center hover:text-pink-400 transition">+</button>
+                        </div>
+                    </div>
+
+                    <div class="pt-6">
+                        <button onclick="addToCart()" class="btn-pink w-full py-5 text-lg font-bold shadow-xl shadow-pink-100 mb-4">
+                            ADD TO BAG
+                        </button>
+                        <p id="detailStock" class="text-center text-xs text-gray-300 tracking-widest"></p>
+                    </div>
+
+                    <div class="border-t border-gray-100 pt-8 text-sm text-gray-400 leading-relaxed">
+                        <p>每個商品都是由 OMO 精選，確保最高品質與療癒觸感。提供全球配送與精美禮品包裝服務。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // --- Baserow 配置 ---
-        const BASEROW_TOKEN = 'YOUR_BASEROW_TOKEN'; // 替換你的 Token
-        const TABLE_ID = 'YOUR_TABLE_ID'; // 替換你的 Table ID
-        const API_URL = `https://api.baserow.io/api/database/rows/table/${TABLE_ID}/?user_field_names=true`;
+        /** --- 請填入你的 Baserow 資訊 --- **/
+        const CONFIG = {
+            TOKEN: 'YOUR_BASEROW_TOKEN',
+            TABLE_ID: 'YOUR_TABLE_ID'
+        };
+
+        const API_URL = `https://api.baserow.io/api/database/rows/table/${CONFIG.TABLE_ID}/?user_field_names=true`;
 
         let products = [];
 
-        // 1. 從 Baserow 讀取資料
+        // 1. 抓取雲端資料
         async function fetchProducts() {
-            showLoading(true);
             try {
-                const response = await fetch(API_URL, {
-                    headers: { "Authorization": `Token ${BASEROW_TOKEN}` }
-                });
-                const data = await response.json();
+                const res = await fetch(API_URL, { headers: { "Authorization": `Token ${CONFIG.TOKEN}` } });
+                const data = await res.json();
+                
+                // 轉換資料結構
                 products = data.results.map(item => ({
-                    dbId: item.id,
-                    name: item.name,
-                    jpy: item.jpy,
-                    price: item.price,
-                    imgs: item.imgs ? item.imgs.split('\n') : ['https://via.placeholder.com/300'],
-                    stock: item.stock || 0
+                    id: item.id,
+                    name: item.name || '未命名商品',
+                    brand: item.brand || 'OMO SELECT',
+                    price: item.price || 0,
+                    stock: item.stock || 0,
+                    imgs: item.imgs ? item.imgs.split('\n').filter(url => url.trim() !== "") : ['https://via.placeholder.com/600x600?text=No+Image']
                 }));
-                renderFront();
-                renderAdminTable();
-            } catch (error) {
-                console.error("Fetch Error:", error);
+
+                renderGrid();
+                setTimeout(() => document.getElementById('loading').style.display = 'none', 800);
+            } catch (err) {
+                console.error("無法載入商品:", err);
+                alert("連線失敗，請檢查 Token 與 Table ID 設定");
             }
-            showLoading(false);
         }
 
-        // 2. 新增商品至 Baserow
-        document.getElementById('productForm').onsubmit = async (e) => {
-            e.preventDefault();
-            showLoading(true);
-            const payload = {
-                name: document.getElementById('pName').value,
-                jpy: parseInt(document.getElementById('pJpy').value) || 0,
-                price: parseInt(document.getElementById('pPrice').value) || 0,
-                imgs: document.getElementById('pImgs').value,
-                stock: 99,
-                status: '上架'
-            };
-
-            try {
-                await fetch(API_URL, {
-                    method: 'POST',
-                    headers: {
-                        "Authorization": `Token ${BASEROW_TOKEN}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(payload)
-                });
-                document.getElementById('productForm').reset();
-                fetchProducts();
-            } catch (error) {
-                alert("上傳失敗");
-            }
-        };
-
-        // 3. 渲染前台 (圖一效果)
-        function renderFront() {
+        // 2. 渲染首頁列表 (圖一)
+        function renderGrid() {
             const grid = document.getElementById('productGrid');
             grid.innerHTML = products.map((p, idx) => `
-                <div class="product-card p-6 flex flex-col items-center text-center shadow-sm" onclick="showDetail(${idx})">
-                    <img src="${p.imgs[0]}" class="w-full aspect-square object-contain mb-4">
-                    <h3 class="font-bold">${p.name}</h3>
-                    <div class="text-pink-400 font-bold mt-2">NT$ ${p.price}</div>
+                <div class="product-card p-6 flex flex-col items-center" onclick="showDetail(${idx})">
+                    <div class="w-full aspect-square mb-6 overflow-hidden flex items-center justify-center">
+                        <img src="${p.imgs[0]}" class="max-w-full max-h-full object-contain">
+                    </div>
+                    <p class="text-[10px] tracking-[0.2em] text-gray-300 uppercase mb-1">${p.brand}</p>
+                    <h3 class="font-bold text-gray-700 mb-2">${p.name}</h3>
+                    <div class="text-sm font-medium text-gray-400">NT$ ${p.price.toLocaleString()}</div>
                 </div>
             `).join('');
         }
 
-        // 4. 顯示詳情 (圖二效果)
+        // 3. 顯示詳情 (圖二)
         function showDetail(idx) {
             const p = products[idx];
-            const content = document.getElementById('detailContent');
-            content.innerHTML = `
-                <div>
-                    <img id="mainImg" src="${p.imgs[0]}" class="w-full rounded-3xl shadow-lg">
-                    <div class="flex gap-2 mt-4">
-                        ${p.imgs.map(src => `<img src="${src}" onclick="document.getElementById('mainImg').src='${src}'" class="w-20 h-20 object-cover rounded cursor-pointer border">`).join('')}
-                    </div>
+            const modal = document.getElementById('detailModal');
+            
+            document.getElementById('detailName').innerText = p.name;
+            document.getElementById('detailBrand').innerText = p.brand;
+            document.getElementById('detailPrice').innerText = `NT$ ${p.price.toLocaleString()}`;
+            document.getElementById('detailStock').innerText = `ONLY ${p.stock} PIECES LEFT`;
+            document.getElementById('buyQty').value = 1;
+
+            // 設置主圖
+            const mainImg = document.getElementById('mainImg');
+            mainImg.src = p.imgs[0];
+
+            // 設置縮圖按鈕
+            const thumbContainer = document.getElementById('thumbContainer');
+            thumbContainer.innerHTML = p.imgs.map((url, i) => `
+                <div class="thumb-btn ${i === 0 ? 'active' : ''}" onclick="changeImg(this, '${url}')">
+                    <img src="${url}">
                 </div>
-                <div class="space-y-6">
-                    <h2 class="text-4xl font-bold">${p.name}</h2>
-                    <div class="text-2xl text-pink-400 font-bold">NT$ ${p.price}</div>
-                    <button class="btn-pink w-full py-4 font-bold">加入購物車</button>
-                    <p class="text-gray-400 text-sm">庫存剩餘：${p.stock}</p>
-                </div>
-            `;
-            document.getElementById('detailModal').classList.add('active');
+            `).join('');
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
         }
 
-        // 輔助功能
-        function closeDetail() { document.getElementById('detailModal').classList.remove('active'); }
-        function toggleAdmin() { document.getElementById('adminPanel').classList.toggle('hidden'); }
-        function showLoading(show) { document.getElementById('loading').style.display = show ? 'flex' : 'none'; }
-        
-        // 頁面加載時執行
+        // 4. 切換大圖功能
+        function changeImg(el, url) {
+            const mainImg = document.getElementById('mainImg');
+            mainImg.style.opacity = '0';
+            setTimeout(() => {
+                mainImg.src = url;
+                mainImg.style.opacity = '1';
+            }, 200);
+
+            document.querySelectorAll('.thumb-btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        // 輔助工具
+        function closeDetail() {
+            document.getElementById('detailModal').classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        function updateQty(val) {
+            const input = document.getElementById('buyQty');
+            let n = parseInt(input.value) + val;
+            if(n < 1) n = 1;
+            input.value = n;
+        }
+
+        function addToCart() {
+            const qty = document.getElementById('buyQty').value;
+            const cart = document.getElementById('cartCount');
+            cart.innerText = parseInt(cart.innerText) + parseInt(qty);
+            alert('ITEM ADDED TO BAG ✨');
+        }
+
+        // 初始化
         fetchProducts();
     </script>
 </body>
