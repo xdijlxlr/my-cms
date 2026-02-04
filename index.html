@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OMO ADMIN - 商品管理系統</title>
+    <title>OMO ADMIN - Baserow 雲端版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -11,19 +11,20 @@
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #f9fafb; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 50; }
         .modal.active { display: flex; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .img-preview-container { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; justify-content: center; }
-        .preview-wrapper { position: relative; width: 80px; height: 80px; }
-        .preview-wrapper img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 1px solid #eee; }
-        .delete-img { position: absolute; -top: 5px; -right: 5px; background: red; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 12px; cursor: pointer; text-align: center; line-height: 18px; }
+        .loading-spinner { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.7); z-index: 100; items-center; justify-content: center; }
     </style>
 </head>
 <body class="flex min-h-screen">
 
+    <div id="loader" class="loading-spinner flex-col">
+        <i class="fas fa-circle-notch fa-spin text-4xl text-pink-400 mb-2"></i>
+        <span class="text-gray-600 font-bold">同步雲端資料中...</span>
+    </div>
+
     <aside class="w-64 bg-black text-white flex-shrink-0 hidden md:block">
         <div class="p-6">
             <h1 class="text-xl font-bold tracking-widest text-white">OMO ADMIN</h1>
-            <p class="text-xs text-gray-400 mt-1">- 管理系統</p>
+            <p class="text-xs text-gray-400 mt-1">BASEROW CLOUD</p>
         </div>
         <nav class="mt-4">
             <a href="#" class="flex items-center px-6 py-3 bg-gray-800 text-white border-l-4 border-pink-400 font-bold">
@@ -35,14 +36,14 @@
     <main class="flex-1 p-8 overflow-y-auto">
         <header class="flex justify-between items-center mb-8">
             <h2 class="text-2xl font-bold text-gray-800">商品管理</h2>
-            <button onclick="clearAllData()" class="text-xs text-red-400 hover:underline">清空所有緩存</button>
+            <div class="text-xs text-gray-400">連線狀態：<span id="syncStatus" class="text-green-500">已同步</span></div>
         </header>
 
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-center">
             <button onclick="toggleModal(true)" class="bg-pink-400 text-white px-6 py-2.5 rounded-lg hover:bg-pink-500 transition shadow-sm font-medium">+ 新增商品</button>
             <div class="flex-1 relative min-w-[200px]">
                 <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                <input type="text" id="searchInput" placeholder="搜尋商品名稱..." class="w-full pl-11 pr-4 py-2.5 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-100">
+                <input type="text" id="searchInput" oninput="renderTable()" placeholder="搜尋商品名稱..." class="w-full pl-11 pr-4 py-2.5 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-pink-100">
             </div>
         </div>
 
@@ -65,119 +66,147 @@
 
     <div id="productModal" class="modal items-center justify-center p-4">
         <div class="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-            <div class="flex justify-between items-center px-8 py-5 border-b bg-white">
-                <h3 class="text-xl font-bold text-gray-800">編輯/新增商品</h3>
-                <button onclick="toggleModal(false)" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
+            <div class="flex justify-between items-center px-8 py-5 border-b">
+                <h3 class="text-xl font-bold text-gray-800">新增商品至雲端</h3>
+                <button onclick="toggleModal(false)" class="text-gray-400 text-3xl">&times;</button>
             </div>
             
-            <form id="productForm" class="overflow-y-auto p-8 space-y-6 no-scrollbar">
-                <section>
-                    <div class="border-2 border-dashed border-pink-100 bg-pink-50/30 rounded-2xl p-8 text-center cursor-pointer hover:bg-pink-50 transition relative" id="dropzone">
-                        <i class="fas fa-images text-3xl text-gray-300 mb-2"></i>
-                        <p class="text-gray-600 font-medium">點擊選取多張圖片 (系統會自動壓縮)</p>
-                        <input type="file" id="fileInput" class="hidden" accept="image/*" multiple>
-                        <div id="previewContainer" class="img-preview-container"></div>
-                    </div>
-                </section>
+            <form id="productForm" class="overflow-y-auto p-8 space-y-6">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">圖片網址 (多張請換行)</label>
+                    <textarea id="pImgs" class="w-full border border-gray-200 rounded-lg p-3 outline-none h-24" placeholder="請輸入圖片 URL..."></textarea>
+                </div>
 
-                <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">商品名稱 *</label>
-                        <input type="text" id="pName" required class="w-full border border-gray-200 rounded-lg p-3 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">品牌/分類</label>
-                        <input type="text" id="pBrand" class="w-full border border-gray-200 rounded-lg p-3 outline-none">
-                    </div>
-                </section>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <input type="text" id="pName" placeholder="商品名稱 *" required class="border p-3 rounded-lg">
+                    <input type="text" id="pBrand" placeholder="品牌/分類" class="border p-3 rounded-lg">
+                </div>
 
-                <section class="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 p-6 rounded-2xl">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-2 uppercase">日幣原價</label>
-                        <input type="number" id="pJpy" oninput="calcCost()" class="w-full border border-gray-200 rounded-lg p-2.5 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-2 uppercase">匯率 (÷)</label>
-                        <input type="number" id="pRate" value="20" oninput="calcCost()" class="w-full border border-gray-200 rounded-lg p-2.5 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-2 uppercase">成本 (台幣)</label>
-                        <input type="text" id="pCost" readonly class="w-full bg-white border border-gray-100 rounded-lg p-2.5 text-gray-400 font-bold">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-2 uppercase text-pink-400">台幣售價 *</label>
-                        <input type="number" id="pPrice" required class="w-full border border-gray-200 rounded-lg p-2.5 outline-none">
-                    </div>
-                </section>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 p-6 rounded-2xl">
+                    <input type="number" id="pJpy" placeholder="日幣原價" oninput="calcCost()" class="border p-2.5 rounded-lg">
+                    <input type="number" id="pRate" value="20" oninput="calcCost()" class="border p-2.5 rounded-lg">
+                    <input type="text" id="pCost" readonly placeholder="成本" class="bg-white border p-2.5 rounded-lg text-gray-400 font-bold">
+                    <input type="number" id="pPrice" placeholder="台幣售價 *" required class="border p-2.5 rounded-lg">
+                </div>
 
-                <section class="grid grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">庫存</label>
-                        <input type="number" id="pStock" value="0" class="w-full border border-gray-200 rounded-lg p-3 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">狀態</label>
-                        <select id="pStatus" class="w-full border border-gray-200 rounded-lg p-3.5 bg-white">
-                            <option value="上架">上架</option>
-                            <option value="下架">下架</option>
-                        </select>
-                    </div>
-                </section>
+                <div class="grid grid-cols-2 gap-6">
+                    <input type="number" id="pStock" value="0" class="border p-3 rounded-lg">
+                    <select id="pStatus" class="border p-3 rounded-lg bg-white">
+                        <option value="上架">上架</option>
+                        <option value="下架">下架</option>
+                    </select>
+                </div>
             </form>
 
             <div class="p-6 bg-gray-50 border-t flex justify-end gap-3 px-8">
-                <button type="button" onclick="toggleModal(false)" class="px-8 py-2.5 bg-white border border-gray-200 rounded-lg">取消</button>
-                <button type="submit" form="productForm" class="px-10 py-2.5 bg-black text-white rounded-lg font-bold shadow-lg">儲存</button>
+                <button type="button" onclick="toggleModal(false)" class="px-8 py-2.5 bg-white border rounded-lg">取消</button>
+                <button type="submit" form="productForm" class="px-10 py-2.5 bg-black text-white rounded-lg font-bold">儲存至 Baserow</button>
             </div>
         </div>
     </div>
 
     <script>
-        let products = JSON.parse(localStorage.getItem('omo_compressed_cms')) || [];
-        let currentImages = [];
+        /** --- BASEROW 配置 --- **/
+        const CONFIG = {
+            TOKEN: '你的_BASEROW_TOKEN',
+            TABLE_ID: '你的_TABLE_ID',
+            BASE_URL: 'https://api.baserow.io/api/database/rows/table/'
+        };
 
-        function saveToLocal() {
+        let products = [];
+
+        // 1. 從 Baserow 抓取資料
+        async function fetchFromBaserow() {
+            showLoader(true);
             try {
-                localStorage.setItem('omo_compressed_cms', JSON.stringify(products));
-            } catch (e) {
-                alert("儲存空間已滿！請刪除部分商品或減少圖片數量。");
-                console.error("Storage Quota Exceeded", e);
+                const response = await fetch(`${CONFIG.BASE_URL}${CONFIG.TABLE_ID}/?user_field_names=true`, {
+                    headers: { "Authorization": `Token ${CONFIG.TOKEN}` }
+                });
+                const data = await response.json();
+                products = data.results;
+                renderTable();
+            } catch (error) {
+                console.error("Fetch error:", error);
+                alert("無法連線至 Baserow，請檢查 Token 與 Table ID");
             }
+            showLoader(false);
         }
 
-        // --- 核心：圖片壓縮功能 ---
-        async function compressImage(base64Str) {
-            return new Promise((resolve) => {
-                const img = new Image();
-                img.src = base64Str;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800; // 限制最大寬度
-                    let width = img.width;
-                    let height = img.height;
+        // 2. 儲存新資料至 Baserow
+        document.getElementById('productForm').onsubmit = async function(e) {
+            e.preventDefault();
+            showLoader(true);
 
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    }
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    // 品質設定為 0.6 (60%)，大大減少體積
-                    resolve(canvas.toDataURL('image/jpeg', 0.6));
-                };
-            });
+            const payload = {
+                "name": document.getElementById('pName').value,
+                "brand": document.getElementById('pBrand').value,
+                "jpy": parseInt(document.getElementById('pJpy').value) || 0,
+                "rate": parseInt(document.getElementById('pRate').value) || 20,
+                "price": parseInt(document.getElementById('pPrice').value) || 0,
+                "stock": parseInt(document.getElementById('pStock').value) || 0,
+                "status": document.getElementById('pStatus').value,
+                "imgs": document.getElementById('pImgs').value // 儲存為字串
+            };
+
+            try {
+                const response = await fetch(`${CONFIG.BASE_URL}${CONFIG.TABLE_ID}/?user_field_names=true`, {
+                    method: 'POST',
+                    headers: {
+                        "Authorization": `Token ${CONFIG.TOKEN}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    toggleModal(false);
+                    await fetchFromBaserow();
+                }
+            } catch (error) {
+                alert("儲存失敗，請檢查網路或欄位名稱");
+            }
+            showLoader(false);
+        };
+
+        // 3. 刪除雲端資料
+        async function deleteProduct(rowId) {
+            if(!confirm('確定從雲端刪除？')) return;
+            showLoader(true);
+            try {
+                await fetch(`${CONFIG.BASE_URL}${CONFIG.TABLE_ID}/${rowId}/`, {
+                    method: 'DELETE',
+                    headers: { "Authorization": `Token ${CONFIG.TOKEN}` }
+                });
+                await fetchFromBaserow();
+            } catch (error) {
+                alert("刪除失敗");
+            }
+            showLoader(false);
         }
 
-        function toggleModal(show) {
-            const modal = document.getElementById('productModal');
-            show ? modal.classList.add('active') : modal.classList.remove('active');
-            if(!show) {
-                document.getElementById('productForm').reset();
-                document.getElementById('previewContainer').innerHTML = "";
-                currentImages = [];
-            }
+        // 4. UI 渲染邏輯
+        function renderTable() {
+            const tbody = document.getElementById('productTable');
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            
+            const filtered = products.filter(p => p.name.toLowerCase().includes(term));
+
+            tbody.innerHTML = filtered.map(p => {
+                const firstImg = p.imgs ? p.imgs.split('\n')[0] : '';
+                return `
+                <tr class="hover:bg-gray-50 transition border-b border-gray-50">
+                    <td class="px-6 py-4">
+                        <img src="${firstImg}" onerror="this.src='https://via.placeholder.com/50'" class="w-12 h-12 object-cover rounded shadow-sm">
+                    </td>
+                    <td class="px-6 py-4 font-medium">${p.name}</td>
+                    <td class="px-6 py-4 text-center font-bold text-pink-500">¥${p.jpy}</td>
+                    <td class="px-6 py-4 text-center font-bold">$${p.price}</td>
+                    <td class="px-6 py-4 text-center">${p.stock}</td>
+                    <td class="px-6 py-4 text-center">
+                        <button onclick="deleteProduct(${p.id})" class="text-red-400 hover:underline">刪除</button>
+                    </td>
+                </tr>
+            `}).join('');
         }
 
         function calcCost() {
@@ -186,80 +215,18 @@
             document.getElementById('pCost').value = Math.round(jpy / rate);
         }
 
-        function renderTable() {
-            const tbody = document.getElementById('productTable');
-            tbody.innerHTML = products.map((p, index) => `
-                <tr class="hover:bg-gray-50/80 transition border-b border-gray-50">
-                    <td class="px-6 py-4">
-                        <img src="${p.imgs[0] || ''}" class="w-12 h-12 object-cover rounded shadow-sm">
-                    </td>
-                    <td class="px-6 py-4 font-medium">${p.name}</td>
-                    <td class="px-6 py-4 text-center font-bold text-pink-500">¥${p.jpy}</td>
-                    <td class="px-6 py-4 text-center font-bold">$${p.price}</td>
-                    <td class="px-6 py-4 text-center">${p.stock}</td>
-                    <td class="px-6 py-4 text-center">
-                        <button onclick="deleteProduct(${index})" class="text-red-400 hover:text-red-600">刪除</button>
-                    </td>
-                </tr>
-            `).join('');
+        function toggleModal(show) {
+            const modal = document.getElementById('productModal');
+            show ? modal.classList.add('active') : modal.classList.remove('active');
+            if(!show) document.getElementById('productForm').reset();
         }
 
-        const fileInput = document.getElementById('fileInput');
-        const previewContainer = document.getElementById('previewContainer');
-        const dropzone = document.getElementById('dropzone');
-
-        dropzone.onclick = (e) => { if(e.target.id !== 'fileInput') fileInput.click(); };
-
-        fileInput.onchange = async (e) => {
-            const files = Array.from(e.target.files);
-            for (const file of files) {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = async (re) => {
-                    const compressed = await compressImage(re.target.result);
-                    currentImages.push(compressed);
-                    const div = document.createElement('div');
-                    div.className = 'preview-wrapper';
-                    div.innerHTML = `<img src="${compressed}">`;
-                    previewContainer.appendChild(div);
-                };
-            }
-        };
-
-        document.getElementById('productForm').onsubmit = function(e) {
-            e.preventDefault();
-            const newProduct = {
-                id: Date.now(),
-                name: document.getElementById('pName').value,
-                jpy: document.getElementById('pJpy').value || 0,
-                price: document.getElementById('pPrice').value,
-                stock: document.getElementById('pStock').value,
-                status: document.getElementById('pStatus').value,
-                imgs: currentImages
-            };
-            products.unshift(newProduct);
-            saveToLocal();
-            renderTable();
-            toggleModal(false);
-        };
-
-        function deleteProduct(index) {
-            if(confirm('確定刪除？')) {
-                products.splice(index, 1);
-                saveToLocal();
-                renderTable();
-            }
+        function showLoader(show) {
+            document.getElementById('loader').style.display = show ? 'flex' : 'none';
         }
 
-        function clearAllData() {
-            if(confirm('確定清空所有商品資料？這將無法恢復。')) {
-                localStorage.removeItem('omo_compressed_cms');
-                products = [];
-                renderTable();
-            }
-        }
-
-        renderTable();
+        // 初始化
+        fetchFromBaserow();
     </script>
 </body>
 </html>
