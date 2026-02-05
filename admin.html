@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OMO ADMIN - 全功能雲端版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f9fafb; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; items-center; justify-content: center; }
+        .modal.active { display: flex; }
+        .loading-spinner { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.8); z-index: 100; items-center; justify-content: center; }
+    </style>
+</head>
+<body class="flex min-h-screen">
+
+    <div id="loader" class="loading-spinner flex-col">
+        <i class="fas fa-circle-notch fa-spin text-4xl text-pink-400 mb-2"></i>
+        <span id="loadText">處理中...</span>
+    </div>
+
+    <aside class="w-64 bg-black text-white flex-shrink-0 hidden md:block">
+        <div class="p-6">
+            <h1 class="text-xl font-bold tracking-widest text-white">OMO ADMIN</h1>
+            <p class="text-[10px] text-gray-500 uppercase mt-1">Cloud Inventory Management</p>
+        </div>
+        <nav class="mt-4">
+            <a href="#" class="flex items-center px-6 py-3 bg-gray-800 border-l-4 border-pink-400 font-bold">
+                <i class="fas fa-box mr-3 w-5 text-pink-400"></i>商品管理
+            </a>
+        </nav>
+    </aside>
+
+    <main class="flex-1 p-8 overflow-y-auto">
+        <header class="flex justify-between items-center mb-8">
+            <h2 class="text-2xl font-bold text-gray-800">商品清單</h2>
+            <button onclick="toggleModal(true)" class="bg-pink-400 text-white px-6 py-2.5 rounded-lg hover:bg-pink-500 transition shadow-md font-bold">+ 新增商品</button>
+        </header>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <table class="w-full text-left">
+                <thead class="bg-gray-50 text-gray-400 text-xs font-bold uppercase tracking-wider">
+                    <tr>
+                        <th class="px-6 py-4">圖片</th>
+                        <th class="px-6 py-4">名稱 / 品牌</th>
+                        <th class="px-6 py-4 text-center">日幣</th>
+                        <th class="px-6 py-4 text-center">台幣售價</th>
+                        <th class="px-6 py-4 text-center">庫存</th>
+                        <th class="px-6 py-4 text-center">狀態</th>
+                        <th class="px-6 py-4 text-center">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="productTable" class="divide-y divide-gray-100 text-sm"></tbody>
+            </table>
+        </div>
+    </main>
+
+    <div id="productModal" class="modal p-4">
+        <div class="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+            <div class="px-8 py-5 border-b flex justify-between items-center bg-white">
+                <h3 class="text-xl font-bold text-gray-800">編輯商品資訊</h3>
+                <button onclick="toggleModal(false)" class="text-gray-400 text-3xl">&times;</button>
+            </div>
+            
+            <form id="productForm" class="overflow-y-auto p-8 space-y-6">
+                <section class="border-2 border-dashed border-pink-100 bg-pink-50/20 rounded-2xl p-6 text-center">
+                    <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
+                    <button type="button" onclick="document.getElementById('fileInput').click()" class="bg-white text-pink-400 px-4 py-2 rounded-full border border-pink-200 font-bold hover:bg-pink-50 transition">
+                        <i class="fas fa-images mr-2"></i>選擇多張商品圖
+                    </button>
+                    <div id="previewArea" class="flex gap-2 mt-4 flex-wrap justify-center"></div>
+                </section>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">商品名稱 *</label>
+                        <input type="text" id="pName" required class="w-full border border-gray-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-pink-100">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">品牌 / 分類</label>
+                        <input type="text" id="pBrand" class="w-full border border-gray-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-pink-100">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 p-6 rounded-2xl">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-2">日幣原價</label>
+                        <input type="number" id="pJpy" oninput="calcCost()" class="w-full border border-gray-200 rounded-lg p-2.5">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-2">匯率 (÷)</label>
+                        <input type="number" id="pRate" value="20" oninput="calcCost()" class="w-full border border-gray-200 rounded-lg p-2.5">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-2">成本 (台幣計)</label>
+                        <input type="text" id="pCost" readonly class="w-full bg-white border border-gray-100 rounded-lg p-2.5 text-gray-400 font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-pink-500 mb-2">台幣售價 *</label>
+                        <input type="number" id="pPrice" required class="w-full border border-pink-200 rounded-lg p-2.5 font-bold focus:ring-2 focus:ring-pink-100">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">庫存數量</label>
+                        <input type="number" id="pStock" value="0" class="w-full border border-gray-200 rounded-xl p-3">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">上架狀態</label>
+                        <select id="pStatus" class="w-full border border-gray-200 rounded-xl p-3.5 bg-white">
+                            <option value="上架">上架 (顯示在前台)</option>
+                            <option value="下架">下架 (暫時隱藏)</option>
+                        </select>
+                    </div>
+                </div>
+            </form>
+
+            <div class="p-6 bg-gray-50 border-t flex justify-end gap-3 px-8">
+                <button type="button" onclick="toggleModal(false)" class="px-8 py-2.5 bg-white border border-gray-200 rounded-xl">取消</button>
+                <button type="submit" form="productForm" class="px-10 py-2.5 bg-black text-white rounded-xl font-bold shadow-lg">儲存至雲端</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /** --- 你的配置 --- **/
+        const CONFIG = {
+            CLOUD_NAME: 'ddgrhonyo',
+            UPLOAD_PRESET: 'maaruu',
+            BASEROW_TOKEN: 'ALu0cpt0XlKWeOAnJUZXbQWYQ1x0bzJc',
+            TABLE_ID: '826554'
+        };
+
+        const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CONFIG.CLOUD_NAME}/image/upload`;
+        const BASEROW_URL = `https://api.baserow.io/api/database/rows/table/${CONFIG.TABLE_ID}/?user_field_names=true`;
+
+        let products = [];
+        let selectedFiles = [];
+
+        // 1. 處理圖片預覽
+        document.getElementById('fileInput').onchange = (e) => {
+            const files = Array.from(e.target.files);
+            selectedFiles = files;
+            const previewArea = document.getElementById('previewArea');
+            previewArea.innerHTML = "";
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (re) => {
+                    previewArea.innerHTML += `<img src="${re.target.result}" class="w-16 h-16 object-cover rounded-lg border-2 border-white shadow-sm">`;
+                };
+                reader.readAsDataURL(file);
+            });
+        };
+
+        // 2. 成本計算
+        function calcCost() {
+            const jpy = parseFloat(document.getElementById('pJpy').value) || 0;
+            const rate = parseFloat(document.getElementById('pRate').value) || 1;
+            document.getElementById('pCost').value = Math.round(jpy / rate);
+        }
+
+        // 3. 上傳與儲存
+        document.getElementById('productForm').onsubmit = async (e) => {
+            e.preventDefault();
+            showLoader(true, "正在處理多張圖片上傳...");
+
+            try {
+                let urls = [];
+                for (const file of selectedFiles) {
+                    const fd = new FormData();
+                    fd.append('file', file);
+                    fd.append('upload_preset', CONFIG.UPLOAD_PRESET);
+                    const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: fd });
+                    const data = await res.json();
+                    urls.push(data.secure_url);
+                }
+
+                showLoader(true, "正在寫入雲端資料庫...");
+                const payload = {
+                    "name": document.getElementById('pName').value,
+                    "brand": document.getElementById('pBrand').value,
+                    "jpy": parseInt(document.getElementById('pJpy').value) || 0,
+                    "rate": parseInt(document.getElementById('pRate').value) || 20,
+                    "price": parseInt(document.getElementById('pPrice').value) || 0,
+                    "stock": parseInt(document.getElementById('pStock').value) || 0,
+                    "status": document.getElementById('pStatus').value,
+                    "imgs": urls.join('\n')
+                };
+
+                const resBaserow = await fetch(BASEROW_URL, {
+                    method: 'POST',
+                    headers: { "Authorization": `Token ${CONFIG.BASEROW_TOKEN}`, "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                if(resBaserow.ok) {
+                    toggleModal(false);
+                    fetchData();
+                }
+            } catch (err) { alert("儲存失敗！"); }
+            showLoader(false);
+        };
+
+        // 4. 讀取資料
+        async function fetchData() {
+            showLoader(true, "讀取雲端資料...");
+            try {
+                const res = await fetch(BASEROW_URL, { headers: { "Authorization": `Token ${CONFIG.BASEROW_TOKEN}` } });
+                const data = await res.json();
+                products = data.results;
+                renderTable();
+            } catch (e) { console.error(e); }
+            showLoader(false);
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('productTable');
+            tbody.innerHTML = products.map(p => `
+                <tr class="hover:bg-gray-50 transition border-b border-gray-50">
+                    <td class="px-6 py-4">
+                        <img src="${p.imgs?.split('\n')[0]}" class="w-12 h-12 object-cover rounded shadow-sm border">
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-gray-800">${p.name}</div>
+                        <div class="text-[10px] text-gray-400 uppercase tracking-widest">${p.brand || '-'}</div>
+                    </td>
+                    <td class="px-6 py-4 text-center text-pink-400 font-bold">¥${p.jpy}</td>
+                    <td class="px-6 py-4 text-center font-bold text-gray-700">$${p.price}</td>
+                    <td class="px-6 py-4 text-center text-gray-500">${p.stock}</td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="px-2 py-1 rounded-full text-[10px] ${p.status === '上架' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}">${p.status}</span>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <button onclick="deleteRow(${p.id})" class="text-red-300 hover:text-red-500"><i class="fas fa-trash-alt"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function deleteRow(id) {
+            if(!confirm('確定刪除？')) return;
+            showLoader(true);
+            await fetch(`https://api.baserow.io/api/database/rows/table/${CONFIG.TABLE_ID}/${id}/`, {
+                method: 'DELETE',
+                headers: { "Authorization": `Token ${CONFIG.BASEROW_TOKEN}` }
+            });
+            fetchData();
+        }
+
+        function toggleModal(show) {
+            document.getElementById('productModal').classList.toggle('active', show);
+            if(!show) {
+                document.getElementById('productForm').reset();
+                document.getElementById('previewArea').innerHTML = "";
+                selectedFiles = [];
+            }
+        }
+
+        function showLoader(show, text = "") {
+            document.getElementById('loader').style.display = show ? 'flex' : 'none';
+            document.getElementById('loadText').innerText = text;
+        }
+
+        fetchData();
+    </script>
+</body>
+</html>
